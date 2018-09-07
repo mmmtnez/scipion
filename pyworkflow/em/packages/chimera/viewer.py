@@ -31,6 +31,7 @@ from pyworkflow.em.convert import ImageHandler
 from protocol_fit import ChimeraProtRigidFit
 from protocol_operate import ChimeraProtOperate
 from protocol_restore import ChimeraProtRestore
+from protocol_modeller_search import ChimeraModelFromTemplate
 from pyworkflow.em.viewers.chimera_utils import \
     createCoordinateAxisFile, runChimeraProgram, getProgram, sessionFile
 from pyworkflow.viewer import DESKTOP_TKINTER, Viewer
@@ -134,3 +135,7 @@ class ChimeraProtRigidFitViewer(ChimeraViewerBase):
 class ChimeraProtOperateViewer(ChimeraViewerBase):
     _label = 'viewer operate'
     _targets = [ChimeraProtOperate]
+
+class ChimeraModelFromTemplateViewer(ChimeraViewerBase):
+    _label = 'viewer model from template'
+    _targets = [ChimeraModelFromTemplate]
