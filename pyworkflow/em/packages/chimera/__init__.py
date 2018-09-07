@@ -2,7 +2,8 @@
 # *
 # * Authors:     Roberto Marabini (roberto@cnb.csic.es)
 # *
-# *
+# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
 # * the Free Software Foundation; either version 2 of the License, or
@@ -34,8 +35,9 @@ _logo = "ChimeraLogoSmall.png"
 from protocol_fit import ChimeraProtRigidFit
 from protocol_operate import ChimeraProtOperate
 from protocol_restore import ChimeraProtRestore
+from protocol_modeller_search import ChimeraModelFromTemplate
 from viewer import ChimeraProtRigidFitViewer, ChimeraProtOperateViewer, \
-    ChimeraRestoreViewer
+    ChimeraRestoreViewer, ChimeraModelFromTemplateViewer
 
 _references = ['Pettersen2004']
 
