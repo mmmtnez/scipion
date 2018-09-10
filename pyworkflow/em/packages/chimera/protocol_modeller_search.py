@@ -57,16 +57,15 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
 
     # --------------------------- DEFINE param functions --------------------
     def _defineParams(self, form):
-        form.addSection(label='Input')
-        form.addParam('pdbFileTemplate', PointerParam,
-                      pointerClass="PdbFile",
-                      label='PDBx/mmCIF file template',
-                      help="PDBx/mmCIF file template used as basic atomic "
-                           "structure to model your specific sequence.")
-        form.addParam('inputVolume', PointerParam, pointerClass="Volume",
-                      condition='False',
-                      label='Input Volume', allowsNull=True,
-                      help="Volume to process")
+        super(ChimeraModelFromTemplate, self)._defineParams(form)
+        param = form.getParam('pdbFileToBeRefined')
+        param.label.set('PDBx/mmCIF file template')
+        param.help.set("PDBx/mmCIF file template used as basic atomic "
+                       "structure to model your specific sequence.")
+        param = form.getParam('inputVolume')
+        param.condition.set('False')
+        param = form.getParam('inputPdbFiles')
+        param.condition.set('False')
         form.addSection(label='Help')
         form.addLine('''Step 1: In Chimera main menu, select Tools -> Sequence 
         -> Sequence; Select the specific chain as template to model your 
@@ -80,19 +79,29 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
         template's sequence.\n\nStep 3: In the sequence window menu, select 
         Structure -> Modeller (homology)...; A new window for Comparative 
         Modeling with Modeller will appear. Select your specific sequence as 
-        the sequence to be modeled, and the input atomic structure used as 
-        template for modeling. Select Run Modeller via web service and write 
-        the Modeller license key supplied. Finally, press OK.\nWAITING TIME: 
-        (you may see the status of your job in chimera main window, 
-        lower left corner.)\n\nStep 4: When finished click quit, 5 models 
-        will appear. Choose the one you like the best. Save it as first guess 
-        in Scipion by executing the Chimera command *scipionwrite [model #n]* 
-        (Chimera main menu: Favorites -> Command Line).\n 
+        the sequence to be modeled (target), and the input atomic structure 
+        used as template for modeling. Select Run Modeller via web service 
+        and write the Modeller license key supplied (Academic users can 
+        register free of charge to receive a license key). Finally, press OK.
+        \nWAITING TIME: (you may see the status of your job in chimera main 
+        window, lower left corner.)\n\nStep 4: When finished, 5 models will 
+        be automatically superimposed onto the template and model scores
+        will appear in Modeller Results window. In Chimera main menu -> 
+        Favorites -> Model panel will show you: #0 (coordinate axes); #1 (
+        template); #2.1 to 2.5 (models).Choose the one you like the best, 
+        for example model #2.1. To save it in Scipion, we need to change the 
+        model ID. In Chimera main menu: Favorites -> Command Line, write 
+        *combine #2.1 model #3 close t*. Then, you will see in Model panel 
+        that selected model #2.1 renamed to combination with ID #3. Save it 
+        as first guess in Scipion by executing the Chimera command 
+        *scipionwrite [model #n]*. In our example *scipionwrite model #3*.\n 
         When you use the command line scipionwrite, the Chimera session will 
         be saved by default. Additionally, you can save the Chimera session 
         whenever you want by executing the command *scipionss". You will be 
-        able to restore the saved session by using the protocol chimera restore 
-        session (SCIPION menu: Tools/Calculators/chimera restore session). ''')
+        able to restore the saved session by using the protocol chimera 
+        restore session (SCIPION menu: Tools/Calculators/chimera restore 
+        session). Once you have save your favorite model you can press 
+        Quit in the Modeller Results window.''')
 
     # --------------------------- INSERT steps functions --------------------
     def _insertAllSteps(self):
