@@ -1,7 +1,9 @@
 import os
 import fileinput
 from shutil import copyfile
-
+####################
+# DISCONTINUED
+###################
 def fixCRYSrecordToPDBFile( inPDBFileName, tmpDir,
                            x=1, y=1, z=1, alpha=90., beta=90., gamma=90.):
     """ Check if crys record exists, if not add it before first atom line
