@@ -777,6 +777,41 @@ class EMFile(EMObject):
         """ Use the _objValue attribute to store filename. """
         self._filename.set(filename)
 
+class Sequence(EMFile):
+    """Class containing a sequence of aminoacids/nucleotides """
+
+    def __init__(self, name=None, filename=None,
+                 isAminoacids=True, id=None, description=None, **kwargs):
+        EMFile.__init__(self, filename, **kwargs)
+        # alias for the sequence given by the user
+        self._name = String(name)  # String supplied by the user
+        # aminoacids vs nucleotides
+        self._isAminoacids = Boolean(isAminoacids)
+        self._id = String(id)
+        self._description = String(description)
+
+    def getSeqId(self):
+        return self._id.get()
+
+    def setId(self, id):
+        self._id.set(id)
+
+    def getSeqName(self):
+        return self._name.get()
+
+    # Note setName is defined in Object for another purpose
+    def setSeqName(self, name):
+        self._name.set(name)
+
+    def getSeqDescription(self):
+        return self._description.get()
+
+    def setSeqDescription(self, description):
+        self._description.set(description)
+
+    def __str__(self):
+         return self.getSeqName()
+
 
 class PdbFile(EMFile):
     """Represents an PDB file. """
