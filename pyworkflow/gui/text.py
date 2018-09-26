@@ -684,11 +684,13 @@ class TextFileViewer(tk.Frame):
   
 def openTextFile(filename):
     """ Open a text file with an external or default viewer. """
+    # TODO: this function does not work if SCIPION_EXTERNAL_VIEWER
+    # is not defined
     if envVarOn('SCIPION_EXTERNAL_VIEWER'):
         openTextFileEditor(filename)
     else:
-        showTextFileViewer("File viewer", [filename])    
-    
+        showTextFileViewer("File viewer", [filename])
+
     
 def openTextFileEditor(filename, tkParent=None):
     try:
