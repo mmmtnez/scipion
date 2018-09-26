@@ -29,7 +29,7 @@ from tempfile import NamedTemporaryFile
 
 import numpy
 
-from pyworkflow.em.convert_atom_struct import AtomicStructHandler
+from pyworkflow.em.handler_atom_struct import AtomicStructHandler
 from pyworkflow.em.transformations import euler_matrix, \
     translation_matrix, concatenate_matrices
 from pyworkflow.tests import *
