@@ -107,10 +107,12 @@ class ProtLocScale(Prot3D):
             inputSize = input.getDim()
             refSize = reference.getDim()
             refSamp = reference.getSamplingRate()
-
-            if inputSize != refSize or self.getSampling() != refSamp:
+            if cmp(inputSize,refSize)!=0:
                 errors.append('Input volume and reference volume should be '
-                              'of the same size and samplig rate')
+                              'of the same size')
+        if abs(self.getSampling() - refSamp) > 1e-5:
+            errors.append('Input volume and reference volume should be '
+                          'of the same sampling rate')
         return errors
 
     def _warnings(self):
