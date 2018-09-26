@@ -52,11 +52,12 @@ from pyworkflow.viewer import View, Viewer, CommandView, DESKTOP_TKINTER, Protoc
 from pyworkflow.utils import Environ, runJob
 from pyworkflow.utils import getFreePort
 from pyworkflow.gui.matplotlib_image import ImageWindow
+from pyworkflow.gui.text import openTextFile, openTextFileEditor
 
 # From pyworkflow.em level
 import showj
 import metadata as md
-from data import PdbFile
+from data import PdbFile, Sequence
 from convert import ImageHandler
 from pyworkflow.em.viewers.chimera_utils import \
     getChimeraEnviron,  createCoordinateAxisFile
@@ -489,6 +490,19 @@ class ChimeraDataView(ChimeraClientView):
     def show(self):
         self.dataview.show()
         ChimeraClientView.show(self)
+
+class SequenceViewer(Viewer):
+    """ Wrapper to visualize Sequences with an editor. """
+    _environments = [DESKTOP_TKINTER]
+    _targets = [Sequence]
+
+    def __init__(self, **kwargs):
+        Viewer.__init__(self, **kwargs)
+
+    def visualize(self, obj, **kwargs):
+        fn = obj.getFileName()
+        openTextFileEditor(fn)
+
 
 
 class ChimeraViewer(Viewer):
