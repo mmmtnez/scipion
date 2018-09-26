@@ -49,11 +49,14 @@ from pyworkflow.em.data import (Volume, SetOfMicrographs, SetOfParticles,
 from pyworkflow.em.headers import Ccp4Header
 from pyworkflow.em.protocol.protocol_import import (ProtImportImages,
                                                     ProtImportCoordinates,
-                                                    ProtImportVolumes)
+                                                    ProtImportVolumes,
+                                                    ProtImportSequence)
 from pyworkflow.gui.tree import BoundTree, TreeProvider
 from pyworkflow.gui.widgets import LabelSlider
 from pyworkflow.object import PointerList, Pointer
 from pyworkflow.wizard import Wizard
+from pyworkflow.em.handler_atom_struct import AtomicStructHandler
+from pyworkflow.em.packages.chimera import ChimeraModelFromTemplate
 
 
 #===============================================================================
@@ -850,7 +853,6 @@ class MaskRadiiPreviewDialog(MaskPreviewDialog):
     def getRadius(self, radiusSlider):
         return int(radiusSlider.get())
 
-
 class ImportCoordinatesBoxSizeWizard(Wizard):
     _targets = [(ProtImportCoordinates, ['boxSize'])]
 
@@ -900,4 +902,45 @@ class ImportOriginVolumeWizard(Wizard):
         z = zdim * sampling
         return x, y, z
 
+
+class ListTreeProviderString(ListTreeProvider):
+    def getText(self, obj):
+        return obj.get()
+
+
+class GetStructureChainsWizard(Wizard):
+    _targets = [(ProtImportSequence, ['inputStructureChain']),
+                (ChimeraModelFromTemplate, ['inputStructureChain'])]
+
+    def getChainsStep(self, protocol):
+        self.structureHandler = AtomicStructHandler()
+        try:
+            if protocol.pdbId.get() is not None:
+                pdbID = protocol.pdbId.get()
+                fileName = self.structureHandler.readFromPDBDatabase(
+                    os.path.basename(pdbID), dir="/tmp/")
+            else:
+                fileName = protocol.pdbFile.get()
+        except:
+            if protocol.pdbFileToBeRefined.get() is not None:
+                fileName = os.path.abspath(protocol.pdbFileToBeRefined.get(
+                ).getFileName())
+
+        self.structureHandler.read(fileName)
+        parsed_structure = self.structureHandler.getStructure()
+        self.structureHandler.editedChainSelection(parsed_structure)
+        self.chainList = self.structureHandler.getChainList()
+
+    def show(self, form):
+        from data import String
+        protocol = form.protocol
+        self.getChainsStep(protocol)
+        finalChainList = []
+        for i in self.chainList:
+            finalChainList.append(String(i))
+        provider = ListTreeProviderString(finalChainList)
+        dlg = dialog.ListDialog(form.root,"Model chains", provider,
+                                "Select one of the chains (model, chain, "
+                                "number of chain residues)" )
+        form.setVar('inputStructureChain', dlg.values[0].get())
 
