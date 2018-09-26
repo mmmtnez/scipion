@@ -321,7 +321,7 @@ matplotlib = env.addPipModule('matplotlib', '1.5.3', target='matplotlib-1.5.3*')
 env.addPipModule('poster', '0.8.1', target='poster-0.8.1*')
 env.addPipModule('psutil', '2.1.1', target='psutil-2.1.1*')
 env.addPipModule('biopython', '1.71', target='biopython-1.71*')
-env.addPipModule('mpi4py', '1.3.1')
+env.addPipModule('mpi4py', '3.0.0') #'1.3.1')
 scipy = env.addPipModule('scipy', '0.14.0',
                      default=not noScipy, deps=[lapack, matplotlib])
 env.addPipModule('bibtexparser', '0.6.2')
