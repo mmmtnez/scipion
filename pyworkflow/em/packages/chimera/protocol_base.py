@@ -69,11 +69,21 @@ class ChimeraProtBase(EMProtocol):
                       help="In case you need to load more PDBx/mmCIF files, "
                            "you can load them here and save them after "
                            "operating with them.")
+        form.addParam('inputStructureChain', StringParam,
+                      condition='False',
+                      label="Chain ", allowsNull=True,
+                      help="Select a particular chain of the atomic "
+                           "structure.")
         form.addParam('extraCommands', StringParam,
                       default='',
                       condition='False',
                       label='Extra commands for chimera viewer',
                       help="Add extra commands in cmd file. Use for testing")
+        form.addParam('inputSequence', PointerParam, pointerClass="Sequence",
+                      label='Target sequence', allowsNull=True,
+                      condition='False',
+                      help="Input the aminoacid sequence to align with the "
+                           "structure template sequence.")
         form.addSection(label='Help')
         form.addLine('''Execute command *scipionwrite [model #n] [refmodel #p] 
         [saverefmodel 0|1]* from command line in order to transfer structures 
@@ -89,6 +99,8 @@ class ChimeraProtBase(EMProtocol):
         whenever you want by executing the command *scipionss". You will be 
         able to restore the saved session by using the protocol chimera restore 
         session (SCIPION menu: Tools/Calculators/chimera restore session). ''')
+
+        return form
 
     # --------------------------- INSERT steps functions --------------------
     def _insertAllSteps(self):
