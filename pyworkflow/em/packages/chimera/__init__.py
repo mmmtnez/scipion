@@ -36,6 +36,7 @@ from protocol_fit import ChimeraProtRigidFit
 from protocol_operate import ChimeraProtOperate
 from protocol_restore import ChimeraProtRestore
 from protocol_modeller_search import ChimeraModelFromTemplate
+from protocol_modeller_search import ChimeraModelFromTemplate
 from viewer import ChimeraProtRigidFitViewer, ChimeraProtOperateViewer, \
     ChimeraRestoreViewer, ChimeraModelFromTemplateViewer
 
