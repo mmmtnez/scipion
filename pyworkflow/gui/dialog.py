@@ -265,12 +265,13 @@ def createMessageBody(bodyFrame, message, image,
     bodyFrame.rowconfigure(0, weight=1)
     bodyFrame.columnconfigure(1, weight=1)  
     
-    return text  
-        
-           
+    return text
+
+
 class MessageDialog(Dialog):
     """Dialog subclasses to show message info, questions or errors.
     It can display an icon with the message"""
+
     def __init__(self, parent, title, msg, iconPath, **args):
         self.msg = msg
         self.iconPath = iconPath
@@ -278,7 +279,7 @@ class MessageDialog(Dialog):
             args['buttons'] = [('OK', RESULT_YES)]
             args['default'] = 'OK'
         Dialog.__init__(self, parent, title, **args)
-        
+
     def body(self, bodyFrame):
         self.image = gui.getImage(self.iconPath)
         createMessageBody(bodyFrame, self.msg, self.image)
