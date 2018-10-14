@@ -57,6 +57,7 @@ from pyworkflow.object import PointerList, Pointer
 from pyworkflow.wizard import Wizard
 from pyworkflow.em.handler_atom_struct import AtomicStructHandler
 from pyworkflow.em.packages.chimera import ChimeraModelFromTemplate
+from data import String
 
 
 #===============================================================================
@@ -912,29 +913,36 @@ class GetStructureChainsWizard(Wizard):
     _targets = [(ProtImportSequence, ['inputStructureChain']),
                 (ChimeraModelFromTemplate, ['inputStructureChain'])]
 
-    def getChainsStep(self, protocol):
+    def getModelsChainsStep(self, protocol):
         self.structureHandler = AtomicStructHandler()
-        try:
+        if hasattr(protocol, 'pdbId'):
             if protocol.pdbId.get() is not None:
                 pdbID = protocol.pdbId.get()
                 fileName = self.structureHandler.readFromPDBDatabase(
                     os.path.basename(pdbID), dir="/tmp/")
             else:
                 fileName = protocol.pdbFile.get()
-        except:
+        else:
             if protocol.pdbFileToBeRefined.get() is not None:
                 fileName = os.path.abspath(protocol.pdbFileToBeRefined.get(
                 ).getFileName())
 
         self.structureHandler.read(fileName)
-        parsed_structure = self.structureHandler.getStructure()
-        self.structureHandler.editedChainSelection(parsed_structure)
-        self.chainList = self.structureHandler.getChainList()
+        self.structureHandler.getStructure()
+        models = self.structureHandler.getModelsChains()
+        return models
+
+    def editionListOfChains(self, models):
+        self.chainList = []
+        for model, chainDic in models.iteritems():
+            for chainID, lenResidues in chainDic.iteritems():
+                self.chainList.append(("[model: %s, chain: %s, %d residues]" %
+                                       (str(model), str(chainID), lenResidues)))
 
     def show(self, form):
-        from data import String
         protocol = form.protocol
-        self.getChainsStep(protocol)
+        models = self.getModelsChainsStep(protocol)
+        self.editionListOfChains(models)
         finalChainList = []
         for i in self.chainList:
             finalChainList.append(String(i))
