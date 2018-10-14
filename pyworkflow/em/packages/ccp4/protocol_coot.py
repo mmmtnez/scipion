@@ -194,7 +194,6 @@ the pdb file from coot  to scipion '
                 'SELECT pdbFileName FROM %s order by id DESC limit 1' %
                 databaseTableName)
             pdbFileToBeRefined = c.fetchone()[0]
-            print "pdbFileToBeRefinedpdbFileToBeRefined", pdbFileToBeRefined
 
         listOfPDBs.append(pdbFileToBeRefined)
         for pdb in self.inputPdbFiles:
@@ -240,7 +239,6 @@ the pdb file from coot  to scipion '
         c.execute('SELECT pdbFileName, pdbLabelName FROM %s where saved = 0' %
                   databaseTableName)
         for row in c:
-            print "output", row[0], row[1]
             pdbFileName = row[0]
             pdbLabelName = row[1]
             pdb = PdbFile()
