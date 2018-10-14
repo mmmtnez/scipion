@@ -777,20 +777,28 @@ class EMFile(EMObject):
         """ Use the _objValue attribute to store filename. """
         self._filename.set(filename)
 
-class Sequence(EMFile):
+class Sequence(EMObject):
     """Class containing a sequence of aminoacids/nucleotides """
 
-    def __init__(self, name=None, filename=None,
-                 isAminoacids=True, id=None, description=None, **kwargs):
-        EMFile.__init__(self, filename, **kwargs)
-        # alias for the sequence given by the user
-        self._name = String(name)  # String supplied by the user
-        # aminoacids vs nucleotides
-        self._isAminoacids = Boolean(isAminoacids)
+    def __init__(self, name=None, sequence=None,
+                 alphabet=None, isAminoacids=True, id=None, description=None,
+                 **kwargs):
+        EMObject.__init__(self, **kwargs)
+        # sequence Id, usually from a database. E.g: P12345
         self._id = String(id)
+        # Descriptive alias provided by the user. E.g: CicloxigenasaB
+        self._name = String(name)
+        # Id this a aminoacid or nucleotide sequence
+        self._isAminoacids = Boolean(isAminoacids)
+        # So far we just use it when creating 'fasta' sequence files
         self._description = String(description)
+        # sequence stores a string of residues (one character per residue)
+        self._sequence = String(sequence)
+        # alphabet is used to describe de convnetion followed to
+        # store the _sequence. We follow biopython criteria
+        self._alphabet = Integer(alphabet)
 
-    def getSeqId(self):
+    def getId(self):
         return self._id.get()
 
     def setId(self, id):
@@ -799,15 +807,28 @@ class Sequence(EMFile):
     def getSeqName(self):
         return self._name.get()
 
-    # Note setName is defined in Object for another purpose
+    # Note that hte natural name for the next function is setName but
+    # setName is defined in Object for another purpose
     def setSeqName(self, name):
         self._name.set(name)
 
-    def getSeqDescription(self):
+    def getSequence(self):
+        return self._sequence.get()
+
+    def setSequence(self, sequence):
+        self._sequence.set(sequence)
+
+    def getDescription(self):
         return self._description.get()
 
-    def setSeqDescription(self, description):
+    def setDescription(self, description):
         self._description.set(description)
+
+    def getAlphabet(self):
+        return self._alphabet.get()
+
+    def getIsAminoacids(self):
+        return self._isAminoacids
 
     def __str__(self):
          return self.getSeqName()
@@ -1293,6 +1314,10 @@ class SetOfDefocusGroup(EMSet):
 class SetOfPDBs(EMSet):
     """ Set containing PDB items. """
     ITEM_TYPE = PdbFile
+
+class SetOfSequences(EMSet):
+    """Set containing Sequence items."""
+    ITEM_TYPE = Sequence
 
 
 class Coordinate(EMObject):
