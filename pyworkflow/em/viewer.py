@@ -63,6 +63,7 @@ from pyworkflow.em.viewers.chimera_utils import \
     getChimeraEnviron,  createCoordinateAxisFile
 
 import xmipp
+from pyworkflow.em.handler_sequence import SequenceHandler
 
 from viewer_fsc import FscViewer
 from viewer_pdf import PDFReportViewer
@@ -499,10 +500,32 @@ class SequenceViewer(Viewer):
     def __init__(self, **kwargs):
         Viewer.__init__(self, **kwargs)
 
+    # def visualize(self, obj, **kwargs):
+        # fn = obj.getFileName()
+        # openTextFileEditor(fn)
     def visualize(self, obj, **kwargs):
-        fn = obj.getFileName()
-        openTextFileEditor(fn)
+        ## The sequence object is visualized in a tmp file;
+        ## To build this tmp file we use a method (saveFile) from the class
+        ## SequenceHandler that requires a Biopython sequence (Bio.Seq.Seq
+        ## object);
 
+        # Step 1: transformation of the sequence of our Scipion Sequence
+        # object (obj.getSequence()) in a Biopython Sequence:
+        seqHandler = SequenceHandler(obj.getSequence(),
+                                     isAminoacid=obj.getIsAminoacids())
+        seqBio = seqHandler._sequence  # Bio.Seq.Seq object
+        # Step 2: retrieving of the other args needed in the saveFile method
+        seqID = obj.getId()
+        seqName = obj.getSeqName()
+        seqDescription = obj.getDescription()
+        seqFileName = os.path.abspath(self.protocol._getTmpPath(
+            seqName + ".fasta"))
+        # Step 3: Sequence saved in the tmp file
+        seqHandler.saveFile(seqFileName, seqID, sequence=seqBio,
+                            name=seqName, seqDescription=seqDescription,
+                            type="fasta")
+        # Step 4: Visalization of tmp file
+        openTextFileEditor(seqFileName)
 
 
 class ChimeraViewer(Viewer):
