@@ -47,9 +47,11 @@ UNAMBIGOUS_RNA_ALPHABET = 4
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio import Entrez, SeqIO
-import urllib, sys
+import urllib, urllib2, sys
 from Bio.SeqRecord import SeqRecord
 import os
+from Bio.Align.Applications import ClustalOmegaCommandline, MuscleCommandline
+from Bio import pairwise2
 
 
 class SequenceHandler():
@@ -58,36 +60,14 @@ class SequenceHandler():
                  isAminoacid=True):
 
         self.isAminoacid = isAminoacid
-        if isAminoacid:
-            if iUPACAlphabet == EXTENDED_PROTEIN_ALPHABET:
-                self.alphabet = IUPAC.ExtendedIUPACProtein
-            else:
-                 self.alphabet = IUPAC.IUPACProtein
-        else:
-            if iUPACAlphabet == EXTENDED_DNA_ALPHABET:
-                self.alphabet = IUPAC.ExtendedIUPACDNA
-            elif iUPACAlphabet == AMBIGOUS_DNA_ALPHABET:
-                self.alphabet = IUPAC.IUPACAmbiguousDNA
-            elif iUPACAlphabet == UNAMBIGOUS_DNA_ALPHABET:
-                self.alphabet = IUPAC.IUPACUnambiguousDNA
-            elif iUPACAlphabet == AMBIGOUS_RNA_ALPHABET:
-                self.alphabet = IUPAC.IUPACAmbiguousRNA
-            else:
-                self.alphabet = IUPAC.IUPACUnambiguousRNA
+        self.alphabet = indexToAlphabet(isAminoacid, iUPACAlphabet)
+
         if sequence is not None:
-            sequence = self._cleanSequence(sequence)
+            #sequence = cleanSequence(self.alphabet, sequence)
             self._sequence = Seq(sequence, alphabet=self.alphabet)
         else:
             self._sequence = None
             # type(self._sequence):  <class 'Bio.Seq.Seq'>
-
-    def _cleanSequence(self, sequence):
-        alphabet = self.alphabet.letters
-        str_list = []
-        for item in sequence.upper():
-            if item in alphabet:
-                str_list.append(item)
-        return ''.join(str_list)
 
     def saveFile(self, fileName, seqID, sequence=None, name=None,
                  seqDescription=None, type="fasta"):
@@ -105,28 +85,139 @@ class SequenceHandler():
 
     def downloadSeqFromDatabase(self, seqID):
         # see http://biopython.org/DIST/docs/api/Bio.SeqIO-module.html
-        # for format/databses
-        print "Conneting to dabase..."
+        # for format/databases
+        print "Connecting to dabase..."
+        seqID = str(seqID)
         sys.stdout.flush()
         counter=1
         retries = 5
+        record = None
+        error = ""
         while counter <= retries:  # retry up to 5 times if server busy
             try:
                 if self.isAminoacid:
+                    dataBase = 'UnitProt'
                     url = "http://www.uniprot.org/uniprot/%s.xml"
                     format = "uniprot-xml"
-                    handle = urllib.urlopen(url % seqID)
+                    handle = urllib2.urlopen(url % seqID)
+                    print "URL", url % seqID
                 else:
-                    Entrez.email = os.environ.get('SCIPION_MAIL', None)
+                    dataBase = 'GeneBank'
+                    Entrez.email = "adam.richards@stat.duke.edu"
+                    format = "fasta"
                     handle = Entrez.efetch(db="nucleotide", id=seqID,
-                                           rettype="gb", retmode="text")
-                    format = "gb"
+                                           rettype=format, retmode="text")
+
                 record = SeqIO.read(handle, format)
+                print "record: ", record
                 break
-            except Exception, e:
-                counter += 1
-                print "Can not connect to database retry %d of %d" % (counter, retries)
-                print str(e)
-                if counter == retries:
-                    self.protocol.setAborted()
-        return record
+            except urllib2.HTTPError, e:
+                error = "%s is a wrong sequence ID" % seqID
+                print e.code
+            except urllib2.URLError, e:
+                error = "Cannot connet to %s" % dataBase
+                print e.args
+            except Exception as ex:
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                error = message
+            if counter == retries:
+                break
+            counter += 1
+        return record, error
+
+    def alignSeq(self, referenceSeq):
+        if self._sequence is not None:
+            alignments = pairwise2.align.globalds(self._sequence.seq,
+                                                  referenceSeq.seq)
+            return alignments
+        else:
+            print "read the sequence first"
+            exit(0)
+
+def cleanSequenceScipion(isAminoacid, iUPACAlphabet, sequence):
+    return cleanSequence(indexToAlphabet(isAminoacid, iUPACAlphabet), sequence)
+
+def cleanSequence(alphabet, sequence):
+    str_list = []
+    for item in sequence.upper():
+        if item in alphabet.letters:
+            str_list.append(item)
+    value =  ''.join(str_list)
+    return ''.join(str_list)
+
+def indexToAlphabet(isAminoacid, iUPACAlphabet):
+    if isAminoacid:
+        if iUPACAlphabet == EXTENDED_PROTEIN_ALPHABET:
+            alphabet = IUPAC.ExtendedIUPACProtein
+        else:
+            alphabet = IUPAC.IUPACProtein
+    else:
+        if iUPACAlphabet == EXTENDED_DNA_ALPHABET:
+            alphabet = IUPAC.ExtendedIUPACDNA
+        elif iUPACAlphabet == AMBIGOUS_DNA_ALPHABET:
+            alphabet = IUPAC.IUPACAmbiguousDNA
+        elif iUPACAlphabet == UNAMBIGOUS_DNA_ALPHABET:
+            alphabet = IUPAC.IUPACUnambiguousDNA
+        elif iUPACAlphabet == AMBIGOUS_RNA_ALPHABET:
+            alphabet = IUPAC.IUPACAmbiguousRNA
+        else:
+            alphabet = IUPAC.IUPACUnambiguousRNA
+    return alphabet
+
+def alphabetToIndex(isAminoacid, alphabet):
+    if isAminoacid:
+        if type(alphabet) is type(IUPAC.ExtendedIUPACProtein):
+            return EXTENDED_PROTEIN_ALPHABET
+        else:
+            return PROTEIN_ALPHABET
+    else:
+        if type(alphabet) is type(IUPAC.ExtendedIUPACDNA):
+            return EXTENDED_DNA_ALPHABET
+        elif type(alphabet) is type(IUPAC.IUPACAmbiguousDNA):
+            return AMBIGOUS_DNA_ALPHABET
+        elif type(alphabet) is type(IUPAC.IUPACUnambiguousDNA):
+            return UNAMBIGOUS_DNA_ALPHABET
+        elif type(alphabet) is type(IUPAC.IUPACAmbiguousRNA):
+            return AMBIGOUS_RNA_ALPHABET
+        else:
+            return UNAMBIGOUS_RNA_ALPHABET
+
+def saveFileSequencesToAlign(SeqDic, inFile, type="fasta"):
+    # Write my sequences to a fasta file
+    with open(inFile, "w") as output_handle:
+        for index, seq in SeqDic.iteritems():
+            record = SeqRecord(seq, id=str(index),
+                           name="", description="")
+            SeqIO.write(record, output_handle, type)
+
+def alignClustalSequences(inFile, outFile):
+    # Alignment of sequences with Clustal Omega program
+    clustalomega_cline = ClustalOmegaCommandline(
+            infile=inFile,
+            outfile=outFile,
+            verbose=True, auto=True)
+    return clustalomega_cline
+
+def alignMuscleSequences(inFile, outFile):
+    # Alignment of sequences with Muscle program
+    muscle_cline = MuscleCommandline(input=inFile, out=outFile)
+    return muscle_cline
+
+def alignBioPairwise2Sequences(structureSequenceId, structureSequence,
+              userSequenceId, userSequence,
+              outFileName):
+    "aligns two sequences and saves them to disk using fasta format"
+    # see alignment_function for globalms parameters
+    alignments = pairwise2.align.globalms(structureSequence,
+                                           userSequence,  3, -1, -3, -2)
+    align1, align2, score, begin, end = alignments[0]
+    with open(outFileName, "w") as handle:
+        handle.write(">%s\n%s\n>%s\n%s\n" % (structureSequenceId,
+                                             align1,
+                                             userSequenceId,
+                                             align2))
+
+
+
+
