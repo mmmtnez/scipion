@@ -1,6 +1,7 @@
 # **************************************************************************
 # *
 # * Authors:     Roberto Marabini (roberto@cnb.csic.es)
+# *              Marta Martinez (mmmtnez@cnb.csic.es)
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 
@@ -24,21 +25,18 @@
 # *
 # **************************************************************************
 """
-This EM module contains Gautomatch auto-picking protocol 
 """
 
 from bibtex import _bibtex  # Load bibtex dict with references
 from pyworkflow.em.viewers.chimera_utils import getEnviron
-
-_logo = "ChimeraLogoSmall.png"
-
 from protocol_fit import ChimeraProtRigidFit
 from protocol_operate import ChimeraProtOperate
 from protocol_restore import ChimeraProtRestore
 from protocol_modeller_search import ChimeraModelFromTemplate
-from protocol_modeller_search import ChimeraModelFromTemplate
 from viewer import ChimeraProtRigidFitViewer, ChimeraProtOperateViewer, \
     ChimeraRestoreViewer, ChimeraModelFromTemplateViewer
+
+_logo = "ChimeraLogoSmall.png"
 
 _references = ['Pettersen2004']
 
