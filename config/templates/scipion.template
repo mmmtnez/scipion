@@ -69,7 +69,7 @@ UNBLUR_HOME = %(EM_ROOT)s/unblur-1.0.2
 XMIPP_HOME = %(EM_ROOT)s/xmipp
 
 # Some visualization packages
-CHIMERA_HOME = %(EM_ROOT)s/chimera-1.10.1
+CHIMERA_HOME = /usr/local/scipion/software/em/chimera64-1.13.1rc 
 CHIMERA_HEADLESS_HOME = %(EM_ROOT)s/chimera_headless
 VMD_HOME = %(EM_ROOT)s/vmd
 
@@ -80,7 +80,7 @@ SCIPION_NOTES_ARGS =
 SCIPION_NOTES_FILE =  notes.txt
 #protocol usage statistics
 SCIPION_NOTIFY = False
-
+SCIPION_MAIL = scipion@cnb.csic.es
 # This section of the configuration file is used to setup variables to
 # compile from sources. Most of them you won't want to change.
 
