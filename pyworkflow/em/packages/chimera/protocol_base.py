@@ -53,12 +53,12 @@ class ChimeraProtBase(EMProtocol):
     _version = VERSION_1_2
 
     # --------------------------- DEFINE param functions --------------------
-    def _defineParams(self, form):
+    def _defineParams(self, form, doHelp=True):
         form.addSection(label='Input')
         form.addParam('inputVolume', PointerParam, pointerClass="Volume",
-                      label='Input Volume', allowsNull=True,
+                      label='Input Volume', allowsNull=True, important=True,
                       help="Volume to process")
-        form.addParam('pdbFileToBeRefined', PointerParam,
+        form.addParam('pdbFileToBeRefined', PointerParam, important=True,
                       pointerClass="PdbFile",
                       label='PDBx/mmCIF file',
                       help="PDBx/mmCIF file that you can save after operating "
@@ -69,36 +69,27 @@ class ChimeraProtBase(EMProtocol):
                       help="In case you need to load more PDBx/mmCIF files, "
                            "you can load them here and save them after "
                            "operating with them.")
-        form.addParam('inputStructureChain', StringParam,
-                      condition='False',
-                      label="Chain ", allowsNull=True,
-                      help="Select a particular chain of the atomic "
-                           "structure.")
         form.addParam('extraCommands', StringParam,
                       default='',
                       condition='False',
                       label='Extra commands for chimera viewer',
                       help="Add extra commands in cmd file. Use for testing")
-        form.addParam('inputSequence', PointerParam, pointerClass="Sequence",
-                      label='Target sequence', allowsNull=True,
-                      condition='False',
-                      help="Input the aminoacid sequence to align with the "
-                           "structure template sequence.")
-        form.addSection(label='Help')
-        form.addLine('''Execute command *scipionwrite [model #n] [refmodel #p] 
-        [saverefmodel 0|1]* from command line in order to transfer structures 
-        and 3D map volumes to SCIPION. 
-        In the particular case in which you have only a volume and a structure, 
-        default values are model #2, refmodel #1 and saverefmodel 0 (false). 
-        Model refers to the PDBx/mmCIF file, refmodel to a 3D map volume. 
-        If you have several structures and no volumes, you can save 
-        all of them by executing commands *scipionwrite [model #1]*, 
-        *scipionwrite [model #2]*, *scipionwrite [model #3]*, and so on.
-        When you use the command line scipionwrite, the Chimera session will 
-        be saved by default. Additionally, you can save the Chimera session 
-        whenever you want by executing the command *scipionss". You will be 
-        able to restore the saved session by using the protocol chimera restore 
-        session (SCIPION menu: Tools/Calculators/chimera restore session). ''')
+        if doHelp:
+            form.addSection(label='Help')
+            form.addLine('''Execute command *scipionwrite [model #n] [refmodel #p] 
+            [saverefmodel 0|1]* from command line in order to transfer structures 
+            and 3D map volumes to SCIPION. 
+            In the particular case in which you have only a volume and a structure, 
+            default values are model #2, refmodel #1 and saverefmodel 0 (false). 
+            Model refers to the PDBx/mmCIF file, refmodel to a 3D map volume. 
+            If you have several structures and no volumes, you can save 
+            all of them by executing commands *scipionwrite [model #1]*, 
+            *scipionwrite [model #2]*, *scipionwrite [model #3]*, and so on.
+            When you use the command line scipionwrite, the Chimera session will 
+            be saved by default. Additionally, you can save the Chimera session 
+            whenever you want by executing the command *scipionss". You will be 
+            able to restore the saved session by using the protocol chimera restore 
+            session (SCIPION menu: Tools/Calculators/chimera restore session). ''')
 
         return form
 
@@ -115,6 +106,7 @@ class ChimeraProtBase(EMProtocol):
         """
         """
         pass
+
 
     def runChimeraStep(self):
         # building script file including the coordinate axes and the input
@@ -171,6 +163,29 @@ class ChimeraProtBase(EMProtocol):
             x, y, z = (pdbFileToBeRefined.getOrigin().getShifts())
             f.write("runCommand('move %0.2f,%0.2f,%0.2f model #%d "
                     "coord #0')\n" % (x, y, z, pdbModelCounter))
+
+        # Alignment of sequence and structure
+        if (hasattr(self, 'inputSequence') and
+                hasattr(self, 'inputStructureChain')):
+            if (self.inputSequence.get() is not None and
+                        self.inputStructureChain.get() is not None):
+                models = self.structureHandler.getModelsChains()
+                if len(models) > 1:
+                    f.write("runCommand('select #%d.%s:.%s')\n"
+                            % (pdbModelCounter, str(self.selectedModel),
+                               str(self.selectedChain)))
+                else:
+                    f.write("runCommand('select #%d:.%s')\n"
+                            % (pdbModelCounter, str(self.selectedChain)))
+                # f.write("runCommand('sequence selection')\n") # To open
+                                                                # only the
+                                                                # sequence of
+                                                                # the selected
+                                                                # chain
+                if self._getOutFastaSequencesFile is not None:
+                    alignmentFile = self._getOutFastaSequencesFile()
+                    f.write("runCommand('open %s')\n" % alignmentFile)
+
         # other pdb files
         pdbModelCounter += 1
         for pdb in self.inputPdbFiles:
@@ -384,7 +399,7 @@ chimeraScriptMain = '''
          f.write(e.message)
          f.close()
          
-     modelId = int(model[1:])# model to write  1
+     # modelId = int(model[1:])# model to write  1
      refModelId = int(refmodel[1:])# coordenate system refers to this model 0
 
      # get actual models
