@@ -31,9 +31,8 @@ from pyworkflow.em.protocol.protocol_import.sequence import \
     ProtImportSequence
 from pyworkflow.em.handler_sequence import \
     SEQ_TYPE_NUCLEOTIDES, PROTEIN_ALPHABET, \
-    AMBIGOUS_RNA_ALPHABET
-import os
-from Bio import SeqIO
+    AMBIGOUS_RNA_ALPHABET, indexToAlphabet
+
 
 class TestImportBase(BaseTest):
     @classmethod
@@ -48,8 +47,12 @@ class TestImportSequence(TestImportBase):
     DESCRIPTION = 'User description'
     NUCLEOTIDESEQ1 = 'AATGCGGTTGGGBDSW********GGCACACG'
     AMINOACIDSSEQ1 = 'LARKJLAKPABXZJUO********VAVAVALK'
-    CHAIN = "['model: 0', 'chain: B', '146 residues']"
-    pdbID = "3lqd"
+    CHAIN1 = "[model: 0, chain: B, 148 residues]" # Protein
+    CHAIN2 = "[model: 0, chain: A, 34 residues]" # RNA
+    CHAIN3 = "[model: 0, chain: I, 153 residues]" # DNA
+    pdbID1 = "3lqd" # Protein
+    pdbID2 = "205d" # RNA
+    pdbID3 = "1aoi" # DNA and protein
     GENEBANKID = 'AJ520101.1'
     UNIPROTID = 'P12345'
 
@@ -61,21 +64,21 @@ class TestImportSequence(TestImportBase):
         args = {'inputSequenceName': self.NAME,
                 'inputSequenceDescription': self.DESCRIPTION,
                 'inputSequence': SEQ_TYPE_NUCLEOTIDES,
-                'rawNucleotideSequence': self.NUCLEOTIDESEQ1
+                'inputRawSequence': self.NUCLEOTIDESEQ1
                }
         prot1 = self.newProtocol(ProtImportSequence, **args)
         prot1.setObjLabel('1_import nucleotide,\nseq from user\nExtended DNA '
                            'alphabet')
         self.launchProtocol(prot1)
         sequence = prot1.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("USER_SEQ" in record.id)
-        self.assertTrue("USER_SEQ" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("AATGCGGTTGGGBDSWGGCACACG" in record.seq)
+        self.assertEqual("USER_SEQ", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("AATGCGGTTG", sequence.getSequence()[:10])
+        self.assertEqual("GATCBDSW",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportUserNucleotideSequence2(self):
         """
@@ -86,21 +89,135 @@ class TestImportSequence(TestImportBase):
                 'inputSequenceDescription': self.DESCRIPTION,
                 'inputSequence': SEQ_TYPE_NUCLEOTIDES,
                 'nucleotideIUPACalphabet': AMBIGOUS_RNA_ALPHABET,
-                'rawNucleotideSequence': self.NUCLEOTIDESEQ1
+                'inputRawSequence': self.NUCLEOTIDESEQ1
                }
         prot2 = self.newProtocol(ProtImportSequence, **args)
         prot2.setObjLabel('2_import nucleotide,\nseq from user\nAmbigous RNA '
                            'alphabet')
         self.launchProtocol(prot2)
         sequence = prot2.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("USER_SEQ" in record.id)
-        self.assertTrue("USER_SEQ" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("AAGCGGGGGBDSWGGCACACG" in record.seq)
+        self.assertEqual("USER_SEQ", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("AAGCGGGGGB", sequence.getSequence()[:10])
+        self.assertEqual("GAUCRYWSMKHBVDN",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
+
+    def testImportStructureNucleotideSequence1(self):
+        """
+        Import the sequence of chain A of atomic RNA structure 205d.cif
+        """
+        args = {'inputSequenceName': self.NAME,
+                'inputSequenceDescription': self.DESCRIPTION,
+                'inputSequence': SEQ_TYPE_NUCLEOTIDES,
+                'inputNucleotideSequence':
+                    ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_STRUCTURE,
+                'inputStructureSequence':
+                    ProtImportSequence.IMPORT_STRUCTURE_FROM_ID,
+                'pdbId': self.pdbID2,
+                'inputStructureChain': self.CHAIN2
+                }
+        prot3 = self.newProtocol(ProtImportSequence, **args)
+        prot3.setObjLabel('3_import aminoacid seq,\n from atomic '
+                           'structure')
+        self.launchProtocol(prot3)
+        sequence = prot3.outputSequence
+        self.assertEqual("205d_A", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("GGACUUUGGU", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
+
+    def testImportStructureNucleotideSequence2(self):
+        """
+        Import the sequence of chain A of atomic RNA structure 205d.cif
+        """
+        args = {'inputSequenceID': self.USERID,
+                'inputSequenceName': self.NAME,
+                'inputSequenceDescription': self.DESCRIPTION,
+                'inputSequence': SEQ_TYPE_NUCLEOTIDES,
+                'inputNucleotideSequence':
+                    ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_STRUCTURE,
+                'inputStructureSequence':
+                    ProtImportSequence.IMPORT_STRUCTURE_FROM_FILES,
+                'pdbFile': self.dsModBuild.getFile('PDBx_mmCIF/205d.cif'),
+                'inputStructureChain': self.CHAIN2
+                }
+        prot4 = self.newProtocol(ProtImportSequence, **args)
+        prot4.setObjLabel('4_import aminoacid seq,\n from atomic '
+                           'structure')
+        self.launchProtocol(prot4)
+        sequence = prot4.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("GGACUUUGGU", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
+
+    def testImportStructureNucleotideSequence3(self):
+        """
+        Import the sequence of chain I of atomic DNA structure 1aoi.cif
+        """
+        args = {'inputSequenceName': self.NAME,
+                'inputSequenceDescription': self.DESCRIPTION,
+                'inputSequence': SEQ_TYPE_NUCLEOTIDES,
+                'inputNucleotideSequence':
+                    ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_STRUCTURE,
+                'inputStructureSequence':
+                    ProtImportSequence.IMPORT_STRUCTURE_FROM_ID,
+                'pdbId': self.pdbID3,
+                'inputStructureChain': self.CHAIN3
+                }
+        prot5 = self.newProtocol(ProtImportSequence, **args)
+        prot5.setObjLabel('5_import aminoacid seq,\n from atomic '
+                           'structure')
+        self.launchProtocol(prot5)
+        sequence = prot5.outputSequence
+        self.assertEqual("1aoi_I", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("ATCAATATCC", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
+
+    def testImportStructureNucleotideSequence4(self):
+        """
+        Import the sequence of chain I of atomic DNA structure 1aoi.cif
+        """
+        args = {'inputSequenceID': self.USERID,
+                'inputSequenceName': self.NAME,
+                'inputSequenceDescription': self.DESCRIPTION,
+                'inputSequence': SEQ_TYPE_NUCLEOTIDES,
+                'inputNucleotideSequence':
+                    ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_STRUCTURE,
+                'inputStructureSequence':
+                    ProtImportSequence.IMPORT_STRUCTURE_FROM_FILES,
+                'pdbFile': self.dsModBuild.getFile('PDBx_mmCIF/1aoi.cif'),
+                'inputStructureChain': self.CHAIN3
+                }
+        prot6 = self.newProtocol(ProtImportSequence, **args)
+        prot6.setObjLabel('6_import aminoacid seq,\n from atomic '
+                           'structure')
+        self.launchProtocol(prot6)
+        sequence = prot6.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("ATCAATATCC", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportFileNucleotideSequence1(self):
         """
@@ -110,23 +227,24 @@ class TestImportSequence(TestImportBase):
                 'inputSequence': SEQ_TYPE_NUCLEOTIDES,
                 'inputNucleotideSequence':
                     ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_FILES,
-                'fileNucleotideSequence': self.dsModBuild.getFile(
+                'fileSequence': self.dsModBuild.getFile(
                     'Sequences/AJ520101.fasta')
                 }
-        prot3 = self.newProtocol(ProtImportSequence, **args)
-        prot3.setObjLabel('3_import nucleotide,\nseq from file')
-        self.launchProtocol(prot3)
-        sequence = prot3.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("AJ520101.1" in record.id)
-        self.assertTrue("AJ520101.1" in record.name)
-        self.assertTrue("Rhizobium leguminosarum bv. viciae plasmid "
-                        "partial fixC gene, fixX gene, nifA gene "
-                        "and nifB gene" in record.description)
-        self.assertTrue("GGATCCGAGA" in record.seq[:10])
+        prot7 = self.newProtocol(ProtImportSequence, **args)
+        prot7.setObjLabel('7_import nucleotide,\nseq from file')
+        self.launchProtocol(prot7)
+        sequence = prot7.outputSequence
+        self.assertEqual("AJ520101.1", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual("AJ520101.1 Rhizobium leguminosarum bv. viciae "
+                         "plasmid "
+                         "partial fixC gene, fixX gene, nifA gene "
+                         "and nifB gene",
+                        sequence.getDescription())
+        self.assertEqual("GGATCCGAGA", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportFileNucleotideSequence2(self):
         """
@@ -138,21 +256,21 @@ class TestImportSequence(TestImportBase):
                 'inputSequence': SEQ_TYPE_NUCLEOTIDES,
                 'inputNucleotideSequence':
                     ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_FILES,
-                'fileNucleotideSequence': self.dsModBuild.getFile(
+                'fileSequence': self.dsModBuild.getFile(
                     'Sequences/AJ520101.fasta')
                 }
-        prot4 = self.newProtocol(ProtImportSequence, **args)
-        prot4.setObjLabel('4_import nucleotide,\nseq from file')
-        self.launchProtocol(prot4)
-        sequence = prot4.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("UserID" in record.id)
-        self.assertTrue("UserID" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("GGATCCGAGA" in record.seq[:10])
+        prot8 = self.newProtocol(ProtImportSequence, **args)
+        prot8.setObjLabel('8_import nucleotide,\nseq from file')
+        self.launchProtocol(prot8)
+        sequence = prot8.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("GGATCCGAGA", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportFileNucleotideSequence3(self):
         """
@@ -162,22 +280,21 @@ class TestImportSequence(TestImportBase):
                 'inputSequence': SEQ_TYPE_NUCLEOTIDES,
                 'inputNucleotideSequence':
                     ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_FILES,
-                'fileNucleotideSequence': self.dsModBuild.getFile(
+                'fileSequence': self.dsModBuild.getFile(
                     'Sequences/Several_sequences.fasta')
                 }
-        prot4_1 = self.newProtocol(ProtImportSequence, **args)
-        prot4_1.setObjLabel('4_1_import nucleotide,\nseq from file')
-        self.launchProtocol(prot4_1)
-        sequence = prot4_1.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("Seq1" in record.id)
-        self.assertTrue("Seq1" in record.name)
-        self.assertTrue("This is the sequence number one"
-                        in record.description)
-        self.assertTrue("TGGCTAAATA" in record.seq[:10])
+        prot9 = self.newProtocol(ProtImportSequence, **args)
+        prot9.setObjLabel('9_import nucleotide,\nseq from file')
+        self.launchProtocol(prot9)
+        sequence = prot9.outputSequence
+        self.assertEqual("Seq1", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual("Seq1 This is the sequence number one",
+                         sequence.getDescription())
+        self.assertEqual("TGGCTAAATA", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportFileNucleotideSequence4(self):
         """
@@ -190,21 +307,21 @@ class TestImportSequence(TestImportBase):
                 'inputSequence': SEQ_TYPE_NUCLEOTIDES,
                 'inputNucleotideSequence':
                     ProtImportSequence.IMPORT_FROM_NUCLEOTIDE_FILES,
-                'fileNucleotideSequence': self.dsModBuild.getFile(
+                'fileSequence': self.dsModBuild.getFile(
                     'Sequences/Several_sequences.fasta')
                 }
-        prot4_2 = self.newProtocol(ProtImportSequence, **args)
-        prot4_2.setObjLabel('4.2_import nucleotide,\nseq from file')
-        self.launchProtocol(prot4_2)
-        sequence = prot4_2.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("UserID" in record.id)
-        self.assertTrue("UserID" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("TGGCTAAATA" in record.seq[:10])
+        prot10 = self.newProtocol(ProtImportSequence, **args)
+        prot10.setObjLabel('10_import nucleotide,\nseq from file')
+        self.launchProtocol(prot10)
+        sequence = prot10.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("TGGCTAAATA", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportGeneBankNucleotideSequence1(self):
         """
@@ -216,21 +333,21 @@ class TestImportSequence(TestImportBase):
                     ProtImportSequence.IMPORT_FROM_GENEBANK,
                 'geneBankSequence': self.GENEBANKID
                 }
-        prot5 = self.newProtocol(ProtImportSequence, **args)
-        prot5.setObjLabel('5_import nucleotide,\nseq from '
+        prot11 = self.newProtocol(ProtImportSequence, **args)
+        prot11.setObjLabel('11_import nucleotide,\nseq from '
                            'GeneBank')
-        self.launchProtocol(prot5)
-        sequence = prot5.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("AJ520101.1" in record.id)
-        self.assertTrue("AJ520101.1" in record.name)
-        self.assertTrue("Rhizobium leguminosarum bv. viciae plasmid "
-                        "partial fixC gene, fixX gene, nifA gene "
-                        "and nifB gene" in record.description)
-        self.assertTrue("GGATCCGAGA" in record.seq[:10])
+        self.launchProtocol(prot11)
+        sequence = prot11.outputSequence
+        self.assertEqual("AJ520101.1", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual("AJ520101.1 Rhizobium leguminosarum bv. viciae "
+                         "plasmid partial fixC gene, fixX gene, nifA gene "
+                         "and nifB gene",
+                         sequence.getDescription())
+        self.assertEqual("GGATCCGAGA", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportGeneBankNucleotideSequence2(self):
         """
@@ -244,19 +361,19 @@ class TestImportSequence(TestImportBase):
                     ProtImportSequence.IMPORT_FROM_GENEBANK,
                 'geneBankSequence': self.GENEBANKID
                 }
-        prot6 = self.newProtocol(ProtImportSequence, **args)
-        prot6.setObjLabel('6_import nucleotide,\nseq from '
+        prot12 = self.newProtocol(ProtImportSequence, **args)
+        prot12.setObjLabel('12_import nucleotide,\nseq from '
                            'GeneBank')
-        self.launchProtocol(prot6)
-        sequence = prot6.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("UserID" in record.id)
-        self.assertTrue("UserID" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("GGATCCGAGA" in record.seq)
+        self.launchProtocol(prot12)
+        sequence = prot12.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual("User description",
+                         sequence.getDescription())
+        self.assertEqual("GGATCCGAGA", sequence.getSequence()[:10])
+        self.assertEqual("GAUC",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportUserAminoacidSequence1(self):
         """
@@ -267,20 +384,20 @@ class TestImportSequence(TestImportBase):
                 'inputSequenceDescription': self.DESCRIPTION,
                 'inputRawSequence': self.AMINOACIDSSEQ1
                 }
-        prot7 = self.newProtocol(ProtImportSequence, **args)
-        prot7.setObjLabel('7_import aminoacid seq,\n from user\nExtended '
+        prot13 = self.newProtocol(ProtImportSequence, **args)
+        prot13.setObjLabel('13_import aminoacid seq,\n from user\nExtended '
                            'protein alphabet')
-        self.launchProtocol(prot7)
+        self.launchProtocol(prot13)
 
-        sequence = prot7.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("USER_SEQ" in record.id)
-        self.assertTrue("USER_SEQ" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("LARKJLAKPA" in record.seq[:10])
+        sequence = prot13.outputSequence
+        self.assertEqual("USER_SEQ", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description", sequence.getDescription())
+        self.assertEqual("LARKJLAKPA", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWYBXZJUO",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters
+                        )
 
     def testImportUserAminoacidSequence2(self):
         """
@@ -292,19 +409,19 @@ class TestImportSequence(TestImportBase):
                 'proteinIUPACalphabet': PROTEIN_ALPHABET,
                 'inputRawSequence': self.AMINOACIDSSEQ1
                 }
-        prot8 = self.newProtocol(ProtImportSequence, **args)
-        prot8.setObjLabel('8_import aminoacid seq,\n from user\nProtein '
+        prot14 = self.newProtocol(ProtImportSequence, **args)
+        prot14.setObjLabel('14_import aminoacid seq,\n from user\nProtein '
                            'alphabet')
-        self.launchProtocol(prot8)
-        sequence = prot8.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("USER_SEQ" in record.id)
-        self.assertTrue("USER_SEQ" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("LARKLAKPAVAVAVALK" in record.seq)
+        self.launchProtocol(prot14)
+        sequence = prot14.outputSequence
+        self.assertEqual("USER_SEQ", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description", sequence.getDescription())
+        self.assertEqual("LARKLAKPAV", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters
+                        )
 
     def testImportStructureAminoacidSequence1(self):
         """
@@ -312,27 +429,26 @@ class TestImportSequence(TestImportBase):
         """
         args = {'inputSequenceName': self.NAME,
                 'inputSequenceDescription': self.DESCRIPTION,
-                'proteinIUPACalphabet': PROTEIN_ALPHABET,
                 'inputProteinSequence':
                     ProtImportSequence.IMPORT_FROM_STRUCTURE,
                 'inputStructureSequence':
                     ProtImportSequence.IMPORT_STRUCTURE_FROM_ID,
-                'pdbId': self.pdbID,
-                'inputStructureChain': self.CHAIN
+                'pdbId': self.pdbID1,
+                'inputStructureChain': self.CHAIN1
                 }
-        prot9 = self.newProtocol(ProtImportSequence, **args)
-        prot9.setObjLabel('9_import aminoacid seq,\n from atomic '
+        prot15 = self.newProtocol(ProtImportSequence, **args)
+        prot15.setObjLabel('15_import aminoacid seq,\n from atomic '
                            'structure')
-        self.launchProtocol(prot9)
-        sequence = prot9.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("3lqd_B" in record.id)
-        self.assertTrue("3lqd_B" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("VHLSGEEKSA" in record.seq[:10])
+        self.launchProtocol(prot15)
+        sequence = prot15.outputSequence
+
+        self.assertEqual("3lqd_B", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description", sequence.getDescription())
+        self.assertEqual("VHLSGEEKSA", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportStructureAminoacidSequence2(self):
         """
@@ -346,21 +462,20 @@ class TestImportSequence(TestImportBase):
                 'inputStructureSequence':
                     ProtImportSequence.IMPORT_STRUCTURE_FROM_FILES,
                 'pdbFile': self.dsModBuild.getFile('PDBx_mmCIF/3lqd.cif'),
-                'inputStructureChain': self.CHAIN
+                'inputStructureChain': self.CHAIN1
                 }
-        prot10 = self.newProtocol(ProtImportSequence, **args)
-        prot10.setObjLabel('10_import aminoacid seq,\n from atomic '
+        prot16 = self.newProtocol(ProtImportSequence, **args)
+        prot16.setObjLabel('16_import aminoacid seq,\n from atomic '
                            'structure')
-        self.launchProtocol(prot10)
-        sequence = prot10.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("UserID" in record.id)
-        self.assertTrue("UserID" in record.name)
-        self.assertTrue("User description" in record.description)
-        self.assertTrue("VHLSGEEKSA" in record.seq[:10])
+        self.launchProtocol(prot16)
+        sequence = prot16.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual("USER_SEQ", sequence.getSeqName())
+        self.assertEqual("User description", sequence.getDescription())
+        self.assertEqual("VHLSGEEKSA", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportFileAminoacidSequence1(self):
         """
@@ -369,23 +484,23 @@ class TestImportSequence(TestImportBase):
         args = {'inputSequenceName': self.NAME,
                 'inputProteinSequence':
                     ProtImportSequence.IMPORT_FROM_FILES,
-                'fileAminoacidSequence': self.dsModBuild.getFile(
+                'fileSequence': self.dsModBuild.getFile(
                     'Sequences/COX1_human.fasta')
                 }
-        prot11 = self.newProtocol(ProtImportSequence, **args)
-        prot11.setObjLabel('11_import aminoacid,\nseq from file')
-        self.launchProtocol(prot11)
-        sequence = prot11.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("YP_003024028.1" in record.id)
-        self.assertTrue("YP_003024028.1" in record.name)
-        self.assertTrue("cytochrome c oxidase subunit I (mitochondrion) "
-                        "[Homo sapiens]"
-                        in record.description)
-        self.assertTrue("MFADRWLFST" in record.seq[:10])
+        prot17 = self.newProtocol(ProtImportSequence, **args)
+        prot17.setObjLabel('17_import aminoacid,\nseq from file')
+        self.launchProtocol(prot17)
+        sequence = prot17.outputSequence
+
+        self.assertEqual("YP_003024028.1", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual('YP_003024028.1 cytochrome c oxidase '
+                         'subunit I (mitochondrion) [Homo sapiens]',
+                        sequence.getDescription())
+        self.assertEqual("MFADRWLFST", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportFileAminoacidSequence2(self):
         """
@@ -396,22 +511,21 @@ class TestImportSequence(TestImportBase):
                 'inputSequenceDescription': self.DESCRIPTION,
                 'inputProteinSequence':
                     ProtImportSequence.IMPORT_FROM_FILES,
-                'fileAminoacidSequence': self.dsModBuild.getFile(
+                'fileSequence': self.dsModBuild.getFile(
                     'Sequences/COX1_human.fasta')
                 }
-        prot12 = self.newProtocol(ProtImportSequence, **args)
-        prot12.setObjLabel('12_import aminoacid,\nseq from file')
-        self.launchProtocol(prot12)
-        sequence = prot12.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("UserID" in record.id)
-        self.assertTrue("UserID" in record.name)
-        self.assertTrue("User description"
-                        in record.description)
-        self.assertTrue("MFADRWLFST" in record.seq[:10])
+        prot18 = self.newProtocol(ProtImportSequence, **args)
+        prot18.setObjLabel('18_import aminoacid,\nseq from file')
+        self.launchProtocol(prot18)
+        sequence = prot18.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual('User description',
+                         sequence.getDescription())
+        self.assertEqual("MFADRWLFST", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportUniprotAminoacidSequence1(self):
         """
@@ -422,20 +536,19 @@ class TestImportSequence(TestImportBase):
                     ProtImportSequence.IMPORT_FROM_UNIPROT,
                 'uniProtSequence': self.UNIPROTID
                 }
-        prot13 = self.newProtocol(ProtImportSequence, **args)
-        prot13.setObjLabel('13_import aminoacids,\nseq from '
+        prot19 = self.newProtocol(ProtImportSequence, **args)
+        prot19.setObjLabel('19_import aminoacids,\nseq from '
                            'UniProt')
-        self.launchProtocol(prot13)
-        sequence = prot13.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("P12345" in record.id)
-        self.assertTrue("P12345" in record.name)
-        self.assertTrue("Aspartate aminotransferase, mitochondrial"
-                        in record.description)
-        self.assertTrue("MALLHSARVL" in record.seq[:10])
+        self.launchProtocol(prot19)
+        sequence = prot19.outputSequence
+        self.assertEqual("P12345", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual('Aspartate aminotransferase, mitochondrial',
+                         sequence.getDescription())
+        self.assertEqual("MALLHSARVL", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
 
     def testImportUniprotAminoacidSequence2(self):
         """
@@ -448,19 +561,19 @@ class TestImportSequence(TestImportBase):
                     ProtImportSequence.IMPORT_FROM_UNIPROT,
                 'uniProtSequence': self.UNIPROTID
                     }
-        prot14 = self.newProtocol(ProtImportSequence, **args)
-        prot14.setObjLabel('14_import aminoacids,\nseq from '
+        prot20 = self.newProtocol(ProtImportSequence, **args)
+        prot20.setObjLabel('20_import aminoacids,\nseq from '
                             'UniProt')
-        self.launchProtocol(prot14)
-        sequence = prot14.outputSequence
-        seqFileName = sequence.getFileName()
-        self.assertEqual(os.path.basename(seqFileName),
-                         'USER_SEQ_sequence.fasta')
-        record = SeqIO.read(seqFileName, "fasta")
-        self.assertTrue("UserID" in record.id)
-        self.assertTrue("UserID" in record.name)
-        self.assertTrue("User description"
-                        in record.description)
-        self.assertTrue("MALLHSARVL" in record.seq[:10])
+        self.launchProtocol(prot20)
+        sequence = prot20.outputSequence
+        self.assertEqual("UserID", sequence.getId())
+        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual('User description',
+                         sequence.getDescription())
+        self.assertEqual("MALLHSARVL", sequence.getSequence()[:10])
+        self.assertEqual("ACDEFGHIKLMNPQRSTVWY",
+                         indexToAlphabet(sequence.getIsAminoacids(),
+                                         sequence.getAlphabet()).letters)
+
 
 
