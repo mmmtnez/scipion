@@ -244,7 +244,7 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
                     outFile)
             else:
                 # All the sequences will be included in the alignment
-                if self.inputProgramToAlign.get() == 'Clustal Omega':
+                if self.inputProgramToAlign1.get() == 'Clustal Omega':
                     cline = alignClustalSequences(inFile, outFile)
                 else:
                     cline = alignMuscleSequences(inFile, outFile)
