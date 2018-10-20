@@ -47,7 +47,8 @@ class ChimeraProtRestore(ChimeraProtBase):
         form.addSection(label='Input')
         form.addParam('inputProtocol', PointerParam,
                   label="Input protocols", important=True,
-                  pointerClass='ChimeraProtOperate, ChimeraProtRigidFit',
+                  pointerClass='ChimeraProtOperate, ChimeraProtRigidFit, '
+                               'ChimeraModelFromTemplate',
                   help="protocol to be reloaded")
 
         form.addParam('extraCommands', StringParam,
