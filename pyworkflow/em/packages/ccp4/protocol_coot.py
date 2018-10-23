@@ -172,6 +172,7 @@ the pdb file from coot  to scipion '
                                force=True).getShifts(),
                                inVol.getSamplingRate(), originField=START)
 
+
     def runCootStep(self, inVolumes, norVolumesNames):
 
         # PDB
@@ -181,19 +182,23 @@ the pdb file from coot  to scipion '
 
         # if there is no database use pdb file from the form
         # otherwise use last created pdb file
-        databasePath = self._getTmpPath(outpuDataBaseNameWithLabels)
+        databasePath = self._getExtraPath(outpuDataBaseNameWithLabels)
         if not os.path.exists(databasePath):
             pdbFileToBeRefined = self.pdbFileToBeRefined.get().getFileName()
         else:
             # open database
             conn = sqlite3.connect(databasePath)
-            c = conn.cursor()
+            # check tables exists
+            if not _checkTableExists(conn, databaseTableName):
+                 pdbFileToBeRefined = self.pdbFileToBeRefined.get().getFileName()
+            else:
+                c = conn.cursor()
 
-            # read filename and label in a loop
-            c.execute(
-                'SELECT pdbFileName FROM %s order by id DESC limit 1' %
-                databaseTableName)
-            pdbFileToBeRefined = c.fetchone()[0]
+                # read filename and label in a loop
+                c.execute(
+                    'SELECT pdbFileName FROM %s order by id DESC limit 1' %
+                    databaseTableName)
+                pdbFileToBeRefined = c.fetchone()[0]
 
         listOfPDBs.append(pdbFileToBeRefined)
         for pdb in self.inputPdbFiles:
@@ -233,6 +238,10 @@ the pdb file from coot  to scipion '
         databasePath = self._getExtraPath(outpuDataBaseNameWithLabels)
         # open database
         conn = sqlite3.connect(databasePath)
+        if not _checkTableExists(conn, databaseTableName):
+            conn.close()
+            return
+
         c = conn.cursor()
 
         # read filename and label in a loop
@@ -593,3 +602,18 @@ aa_auxiliary_chain: AA
 aaNumber: 100
 step: 10
 """)
+
+def _checkTableExists(dbcon, tablename):
+    dbcur = dbcon.cursor()
+    dbcur.execute("""
+        SELECT COUNT(*)
+        FROM sqlite_master
+        WHERE type='table'
+         AND name='%s'
+        """%tablename)
+    if dbcur.fetchone()[0] == 1:
+        dbcur.close()
+        return True
+
+    dbcur.close()
+    return False
