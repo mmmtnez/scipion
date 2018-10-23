@@ -53,6 +53,8 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
     OUTFILE = "aligned.fasta"
     TWOSEQUENCES = 0
     MULTIPLESEQUENCES = 1
+    ProgramToAlign1 = ['Bio.pairwise2', 'Clustal Omega', 'MUSCLE']
+    ProgramToAlign2 = ['Clustal Omega', 'MUSCLE']
 
     # --------------------------- DEFINE param functions --------------------
     def _defineParams(self, form):
@@ -89,7 +91,7 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
                          help="In case you need to load more sequences to "
                               "align, you can load them here.")
         section.addParam('inputProgramToAlign1', params.EnumParam,
-                         choices=['Bio.pairwise2', 'Clustal Omega','MUSCLE'],
+                         choices=self.ProgramToAlign1,
                          label="Alignment tool for two sequences:", default=0,
                          condition='additionalSequencesToAlign == False',
                          help="Select a program to accomplish the sequence"
@@ -118,7 +120,7 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
                                   "for the first time by 'sudo apt install "
                                   "muscle'.")
         section.addParam('inputProgramToAlign2', params.EnumParam,
-                         choices=['Clustal Omega','MUSCLE'],
+                         choices=self.ProgramToAlign2,
                          label="Multiple alignment tool:", default=0,
                          condition='additionalSequencesToAlign == True',
                          help="Select a program to accomplish the sequence"
@@ -236,7 +238,8 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
 
         # get the alignment of sequences
         if self.additionalSequencesToAlign.get() == False:
-            if self.inputProgramToAlign1.get() == 'Bio.pairwise2':
+            if self.inputProgramToAlign1.get() == \
+                    self.ProgramToAlign1.index('Bio.pairwise2'):
             # Only the two first sequences will be included in the alignment
                 self.alignment = alignBioPairwise2Sequences(
                     structSeqID, structureSeq,
@@ -244,13 +247,15 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
                     outFile)
             else:
                 # All the sequences will be included in the alignment
-                if self.inputProgramToAlign1.get() == 'Clustal Omega':
+                if self.inputProgramToAlign1.get() == \
+                        self.ProgramToAlign1.index('Clustal Omega'):
                     cline = alignClustalSequences(inFile, outFile)
                 else:
                     cline = alignMuscleSequences(inFile, outFile)
         else:
             # All the sequences will be included in the alignment
-            if self.inputProgramToAlign2.get() == 'Clustal Omega':
+            if self.inputProgramToAlign2.get() == self.ProgramToAlign2.index(
+                    'Clustal Omega'):
                 cline = alignClustalSequences(inFile, outFile)
             else:
                 cline = alignMuscleSequences(inFile, outFile)
