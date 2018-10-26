@@ -142,7 +142,7 @@ class ChimeraProtBase(EMProtocol):
                                  bildFileName=tmpFileName,
                                  sampling=sampling)
         f.write("runCommand('open %s')\n" % tmpFileName)
-        f.write("cofr 0,0,0\n")  # set center of coordinates
+        f.write("runCommand('cofr 0,0,0')\n")  # set center of coordinates
 
         # input vol with its origin coordinates
         pdbModelCounter = 1
