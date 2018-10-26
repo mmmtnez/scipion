@@ -126,8 +126,8 @@ class PowerfitProtRigidFit(ProtFitting3D):
                 fhCmd.write("open %s\n" % _localInputVol)
                 fhCmd.write("open lcc.mrc\n")
                 fhCmd.write("open fit_%d.pdb\n" % n)
-                fhCmd.write("vol #1 hide\n")
-                fhCmd.write("scolor #0 volume #1 cmap rainbow\n")
+                fhCmd.write("vol #2 hide\n")
+                fhCmd.write("scolor #1 volume #2 cmap rainbow\n")
                 fhCmd.close()
 
     def createOutputStep(self):
