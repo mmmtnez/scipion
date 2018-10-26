@@ -70,6 +70,7 @@ class CootRefineViewer(Viewer):
         fnCmd = self.protocol._getTmpPath("chimera.cmd")
         f = open(fnCmd, 'w')
         f.write("open %s\n" % bildFileName)
+        f.write("cofr 0,0,0\n")  # set center of coordinates
 
         outputsVol = []
         if len(self.protocol.inputVolumes) is 0:

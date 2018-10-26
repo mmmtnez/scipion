@@ -121,12 +121,13 @@ class PowerfitProtRigidFit(ProtFitting3D):
             if exists(fnPdb):
                 fnCmd = self._getExtraPath("chimera_%d.cmd" % n)
                 fhCmd = open(fnCmd, 'w')
+                fhCmd.write("open %s\n" % bildFileName)
+                fhCmd.write("cofr 0,0,0\n")  # set center of coordinates
                 fhCmd.write("open %s\n" % _localInputVol)
                 fhCmd.write("open lcc.mrc\n")
                 fhCmd.write("open fit_%d.pdb\n" % n)
                 fhCmd.write("vol #1 hide\n")
                 fhCmd.write("scolor #0 volume #1 cmap rainbow\n")
-                fhCmd.write("open %s\n" % bildFileName)
                 fhCmd.close()
 
     def createOutputStep(self):

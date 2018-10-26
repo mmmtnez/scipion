@@ -386,6 +386,7 @@ and rmsCHIRAL (root mean square of chiral index.""")
             f = open(fnCmd, 'w')
             maskFileName = os.path.abspath(maskedMapFileName)
             f.write("open %s\n" % maskFileName)
+            f.write("cofr 0,0,0\n")  # set center of coordinates
             f.write("volume #%d style surface voxelSize %f\n" %
                     (counter, sampling))
             # No origin information in header :-(
@@ -418,6 +419,7 @@ and rmsCHIRAL (root mean square of chiral index.""")
         f = open(fnCmd, 'w')
         # reference axis model = 0
         f.write("open %s\n" % bildFileName)
+        f.write("cofr 0,0,0\n")  # set center of coordinates
 
         # input 3D map
         counter += 1  # 1
