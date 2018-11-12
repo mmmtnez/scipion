@@ -52,7 +52,6 @@ class ProtImportSequence(ProtImportFiles):
     """ Protocol to import an aminoacid/nucleotide sequence file to the
     project"""
     _label = 'import sequence'
-    #SEQUENCEFILENAME = '_sequence.fasta'
     IMPORT_FROM_PLAIN_TEXT = 0
     IMPORT_FROM_STRUCTURE = 1
     IMPORT_FROM_FILES = 2
@@ -64,42 +63,14 @@ class ProtImportSequence(ProtImportFiles):
     IMPORT_STRUCTURE_FROM_ID = 0
     IMPORT_STRUCTURE_FROM_FILES = 1
 
-    url = "http://www.uniprot.org/uniprot/"
-
     def __init__(self, **args):
         ProtImportFiles.__init__(self, **args)
+        #self.debug("Import Sequence debug ON")
 
     def _defineParams(self, form):
 
         form.addSection(label='Input')
-        form.addParam('inputSequenceID', params.StringParam,
-                      label="Sequence ID", allowsNull=True,
-                      help="Write a sequence ID. Otherwise, if the "
-                           "sequence derives from GeneBank/UniProt/PDB "
-                           "databases, the respective database ID will be "
-                           "selected as starting sequence ID; examples: if "
-                           "you select GeneBank accession AJ520101, SCIPION "
-                           "will assign AJ520101 as sequence ID; if "
-                           "you select UniProt accession P12345, SCIPION will "
-                           "assign P12345 as sequence ID; if you "
-                           "select atomic structure 3lqd.cif, chain B, "
-                           "SCIPION will assign 3lqd_B as sequence ID. In "
-                           "the rest of cases, the Sequence name "
-                           "will be selected as starting Sequence ID.")
-        form.addParam('inputSequenceName', params.StringParam, important=True,
-                      label="Sequence name", allowsNull=False,
-                      help="Write a sequence name.")
-        form.addParam('inputSequenceDescription', params.StringParam,
-                      label="Sequence description",
-                      allowsNull=True,
-                      help="Write a description for your sequence. Otherwise, "
-                           "if the "
-                           "sequence derives from GeneBank/UniProt/PDB "
-                           "databases, the respective database description "
-                           "will be "
-                           "selected as starting sequence description. In "
-                           "the rest of cases, no sequence description will "
-                           "be added.")
+        # import either aminoacid or nucleotic sequence
         form.addParam('inputSequence', params.EnumParam,
                       pointerClass='Sequence',
                       choices=SEQ_TYPE,
@@ -107,20 +78,36 @@ class ProtImportSequence(ProtImportFiles):
                       label="Import sequence of ",
                       default=SEQ_TYPE_AMINOACIDS,
                       help='Select the type of sequence to import.')
+
+        # if aminoacid was choosen these are the possibilities
         form.addParam('inputProteinSequence', params.EnumParam,
                       choices=['plain text', 'atomic structure', 'file',
                                'UniProt ID'],
-                      display=params.EnumParam.DISPLAY_HLIST,
+                      display=params.EnumParam.DISPLAY_COMBO,
                       condition='inputSequence == %d' % SEQ_TYPE_AMINOACIDS,
                       label="From ",
-                      default=self.IMPORT_FROM_PLAIN_TEXT,
+                      default=self.IMPORT_FROM_UNIPROT,
                       help='Select one of the four options: write the '
                            'aminoacid sequence or import it '
                            'from a previously loaded atomic structure, a local '
                            'file or an online server.')
+        # else (nucleotide)
+        form.addParam('inputNucleotideSequence', params.EnumParam,
+                      choices=['plain text', 'atomic structure', 'file',
+                               'GeneBank ID'],
+                      display=params.EnumParam.DISPLAY_COMBO,
+                      condition='inputSequence == %d' % SEQ_TYPE_NUCLEOTIDES,
+                      label="From ",
+                      default=self.IMPORT_FROM_GENEBANK,
+                      help='Select one of the four options: write the '
+                           'nucleic acid sequence or import it '
+                           'from a local file or an online server.')
+
+        # (aminoacid) if input is a string pasted in the form ask
+        # for alphabet (how aminoacids are coded)
         form.addParam('proteinIUPACalphabet', params.EnumParam,
                       choices=IUPAC_PROTEIN_ALPHABET,
-                      display=params.EnumParam.DISPLAY_HLIST,
+                      display=params.EnumParam.DISPLAY_COMBO,
                       condition='inputSequence == %d and '
                                 'inputProteinSequence == %d' %
                                 (SEQ_TYPE_AMINOACIDS,
@@ -148,31 +135,12 @@ class ProtImportSequence(ProtImportFiles):
                            'Pyrrolysine\nThis alphabet is not intended to be '
                            'used with X for Selenocysteine (an ad-hoc standard'
                            ' prior to the IUPAC adoption of U instead).\n')
-        form.addParam('uniProtSequence', params.StringParam,
-                      condition='inputSequence == %d and '
-                                'inputProteinSequence == %d' %
-                                (SEQ_TYPE_AMINOACIDS,
-                                 self.IMPORT_FROM_UNIPROT),
-                      label="UniProt name/ID ", allowsNull=True,
-                      help='Write a UniProt ID (six or ten alphanumeric '
-                           'characters; examples: A2BC19, P12345, '
-                           'A0A022YWF9, DGAL_ECOLI).\n You can convert other '
-                           'database identifiers to UniProt accession codes '
-                           'by using the "ID Mapping" tab on '
-                           'https://www.uniprot.org/')
-        form.addParam('inputNucleotideSequence', params.EnumParam,
-                      choices=['plain text', 'atomic structure', 'file',
-                               'GeneBank'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      condition='inputSequence == %d' % SEQ_TYPE_NUCLEOTIDES,
-                      label="From ",
-                      default=self.IMPORT_FROM_NUCLEOTIDE_PLAIN_TEXT,
-                      help='Select one of the four options: write the '
-                           'nucleic acid sequence or import it '
-                           'from a local file or an online server.')
+
+        # (nucleotide) if input is a string pasted in the form ask
+        # for alphabet (how nucleotides are coded)
         form.addParam('nucleotideIUPACalphabet', params.EnumParam,
                       choices=IUPAC_NUCLEOTIDE_ALPHABET,
-                      display=params.EnumParam.DISPLAY_HLIST,
+                      display=params.EnumParam.DISPLAY_COMBO,
                       condition='inputSequence == %d and '
                                 'inputNucleotideSequence == %d' %
                                 (SEQ_TYPE_NUCLEOTIDES,
@@ -195,6 +163,8 @@ class ProtImportSequence(ProtImportFiles):
                            'ambiguous RNA; *GAUCRYWSMKHBVDN*\n\nUnambigous '
                            'RNA alphabet: Generic single letter RNA '
                            'alphabet.\n\n')
+
+        # for both cases you may paste here the sequence
         form.addParam('inputRawSequence', params.StringParam,
                       condition='(inputSequence == %d and '
                                 'inputProteinSequence == %d) or '
@@ -206,6 +176,9 @@ class ProtImportSequence(ProtImportFiles):
                                  self.IMPORT_FROM_NUCLEOTIDE_PLAIN_TEXT),
                       label="Write your sequence here:", important=True,
                       help="Write the aminoacid or nucleotide raw sequence.\n")
+
+        # (aminoacid) use atomic structure (pdb) to get the sequence
+        # we can read it frpom file or from database
         form.addParam('inputStructureSequence', params.EnumParam,
                       choices=['id', 'file'],
                       condition='inputProteinSequence == %d or '
@@ -243,7 +216,7 @@ class ProtImportSequence(ProtImportFiles):
                                 'inputNucleotideSequence == %d' %
                                 (self.IMPORT_FROM_STRUCTURE,
                                  self.IMPORT_FROM_NUCLEOTIDE_STRUCTURE),
-                      label="Chain ", allowsNull=True,
+                      label="Chain ",
                       help="Select a particular chain of the atomic "
                            "structure.")
         form.addParam('fileSequence', params.PathParam,
@@ -252,22 +225,65 @@ class ProtImportSequence(ProtImportFiles):
                                 'inputNucleotideSequence == %d' %
                                 (self.IMPORT_FROM_FILES,
                                  self.IMPORT_FROM_NUCLEOTIDE_FILES),
-                      allowsNull=True,
                       help='Specify a path to desired aminoacid or '
                            'nucleic acid sequence '
                            'file.\nIf your file contains more than one '
                            'sequence, only the first one will be considered.')
+        # Access database
+
+        #aminoacid
+        form.addParam('uniProtSequence', params.StringParam,
+                      condition = 'inputSequence == %d and '
+                                  'inputProteinSequence == %d' %
+                                  (SEQ_TYPE_AMINOACIDS,
+                                   self.IMPORT_FROM_UNIPROT),
+                      label = "UniProt name/ID ",
+                      help = 'Write a UniProt ID (six or ten alphanumeric '
+                             'characters; examples: A2BC19, P12345, '
+                             'A0A022YWF9, DGAL_ECOLI).\n You can convert other '
+                             'database identifiers to UniProt accession codes '
+                             'by using the "ID Mapping" tab on '
+                             'https://www.uniprot.org/')
+        #nucleotide
         form.addParam('geneBankSequence', params.StringParam,
                       condition='inputSequence == %d and '
                                 'inputNucleotideSequence == %d' %
                                 (SEQ_TYPE_NUCLEOTIDES,
                                 self.IMPORT_FROM_GENEBANK),
-                      label="GeneBank accession ", allowsNull=True,
+                      label="GeneBank accession ID",
                       help='Write a GeneBank accession.\n')
+        form.addParam('inputSequenceName', params.StringParam, important=True,
+                      default='sequence',
+                      label="Sequence name",
+                      help="Scipion will use this alias to identificate the sequence.")
+#        form.addParam('inputSequenceID', params.StringParam,
+#                      label="Sequence ID",
+#                      help="Write a sequence ID. Otherwise, if the "
+#                           "sequence derives from GeneBank/UniProt/PDB "
+#                           "databases, the respective database ID will be "
+#                           "selected as starting sequence ID; examples: if "
+#                           "you select GeneBank accession AJ520101, SCIPION "
+#                           "will assign AJ520101 as sequence ID; if "
+#                           "you select UniProt accession P12345, SCIPION will "
+#                           "assign P12345 as sequence ID; if you "
+#                           "select atomic structure 3lqd.cif, chain B, "
+#                           "SCIPION will assign 3lqd_B as sequence ID. In "
+#                           "the rest of cases, the Sequence name "
+#                           "will be selected as starting Sequence ID.")
+        form.addParam('inputSequenceDescription', params.StringParam,
+                      label="Sequence description (optional)",
+                      help="Write a description for your sequence. Otherwise, "
+                           "if the "
+                           "sequence derives from GeneBank/UniProt/PDB "
+                           "databases, the respective database description "
+                           "will be "
+                           "selected as starting sequence description. In "
+                           "the rest of cases, no sequence description will "
+                           "be added.")
 
     def _insertAllSteps(self):
         self.name = self.inputSequenceName.get()
-
+        self.debug("InsertAllSteps: self.name: {}".format(self.name))
         if self.inputSequence == SEQ_TYPE_AMINOACIDS:
             if self.inputProteinSequence == self.IMPORT_FROM_PLAIN_TEXT:
                 rawSequence = self.inputRawSequence.get()
@@ -306,10 +322,11 @@ class ProtImportSequence(ProtImportFiles):
 
     def getRawSequenceStep(self, rawSequence):
         # user types sequence
-        if self.inputSequenceID.get() is not None:
-            self.id = self.inputSequenceID.get()
-        else:
-            self.id = self.name
+        #if self.inputSequenceID.get() is not None:
+        #    self.id = self.inputSequenceID.get()
+        #else:
+        #    self.id = self.name
+        self.id       = self.name
         self.alphabet = self._getAlphabet()  # index number
         self.sequence = cleanSequenceScipion(self.inputSequence ==
                                      SEQ_TYPE_AMINOACIDS,
@@ -349,11 +366,13 @@ class ProtImportSequence(ProtImportFiles):
         # Assignation of sequence ID: if the user has provided a specific
         #  ID, this will be adopted by default; otherwise, a sequence ID
         # related with the starting structure will be selected.
-        if self.inputSequenceID.get() is not None:
-            self.id = self.inputSequenceID.get()
-        else:
-            self.id = self.structureHandler.getFullID(
-                    selectedModel, selectedChain)
+        #if self.inputSequenceID.get() is not None:
+        #    self.id = self.inputSequenceID.get()
+        #else:
+        #    self.id = self.structureHandler.getFullID(
+        #            selectedModel, selectedChain)
+        self.id = self.structureHandler.getFullID(
+                      selectedModel, selectedChain)
 
         print "Selected chain: %s from model: %s from structure: %s" \
               % (selectedChain, selectedModel,
@@ -363,6 +382,8 @@ class ProtImportSequence(ProtImportFiles):
         """Download UniProt/GeneBank sequence from its respective database
         """
         #sequenceDB = str(sequenceDB)
+        self.debug("start sequenceDatabaseDownloadStep")
+
         if self.uniProtSequence.get() is not None:
             seqHandler = SequenceHandler()
 
@@ -375,9 +396,10 @@ class ProtImportSequence(ProtImportFiles):
             self.setAborted()
             exit(0)
 
-        if self.inputSequenceID.get() is not None:
-            self.id = self.inputSequenceID.get()
-        elif sequenceDB != '':
+        #if self.inputSequenceID.get() is not None:
+        #    self.id = self.inputSequenceID.get()
+        #elif sequenceDB != '':
+        if sequenceDB != '':
             self.id = sequenceDB
         else:
             self.id = self.name
@@ -394,9 +416,10 @@ class ProtImportSequence(ProtImportFiles):
         seqHandler = SequenceHandler()
         record = seqHandler.downloadSeqFromFile(sequenceFile,
                                                         type="fasta")
-        if self.inputSequenceID.get() is not None:
-            self.id = self.inputSequenceID.get()
-        elif record.id != '':
+        #if self.inputSequenceID.get() is not None:
+        #    self.id = self.inputSequenceID.get()
+        #elif record.id != '':
+        if record.id != '':
             self.id = record.id
         else:
             self.id = self.name
@@ -429,8 +452,7 @@ class ProtImportSequence(ProtImportFiles):
     def _summary(self):
         summary = []
         self.name = self.inputSequenceName.get()
-        uniProtId = self._getUniProtID()
-        geneBankID = self._getGeneBankID()
+
         if self.inputSequence == SEQ_TYPE_AMINOACIDS:
             summary.append('Sequence of aminoacids:\n')
             if self.inputProteinSequence == self.IMPORT_FROM_PLAIN_TEXT:
@@ -447,6 +469,7 @@ class ProtImportSequence(ProtImportFiles):
                     summary.append("Sequence *%s* imported from file *%s*\n"
                                    % (self.name, self.pdbFile.get()))
             elif self.inputProteinSequence == self.IMPORT_FROM_UNIPROT:
+                uniProtId = self._getUniProtID()
                 summary.append("Sequence *%s* imported from UniProt ID "
                                "*%s*\n"
                                % (self.name, uniProtId))
@@ -472,6 +495,7 @@ class ProtImportSequence(ProtImportFiles):
                     summary.append("Sequence *%s* imported from file *%s*\n"
                                    % (self.name, self.pdbFile.get()))
             elif self.inputNucleotideSequence == self.IMPORT_FROM_GENEBANK:
+                geneBankID = self._getGeneBankID()
                 summary.append("Sequence *%s* imported from geneBank ID "
                                "*%s*\n"
                                % (self.name, geneBankID))
@@ -484,6 +508,59 @@ class ProtImportSequence(ProtImportFiles):
 
     def _validate(self):
         errors = []
+        name = self.inputSequenceName.get()
+        print "validate"
+        if self.inputSequence == SEQ_TYPE_AMINOACIDS:
+            if self.inputProteinSequence == self.IMPORT_FROM_PLAIN_TEXT:
+                print "IMPORT_FROM_PLAIN_TEXT"
+                # check if file has been given
+                pass
+            elif self.inputProteinSequence == self.IMPORT_FROM_STRUCTURE:
+                print "IMPORT_FROM_STRUCTURE"
+                if self.inputStructureSequence == \
+                    self.IMPORT_STRUCTURE_FROM_ID:
+                    print "IMPORT_STRUCTURE_FROM_ID"
+                    # check for pdb ID
+                    pass
+                elif self.inputStructureSequence == \
+                    self.IMPORT_STRUCTURE_FROM_FILES:
+                    print "IMPORT_STRUCTURE_FROM_FILES"
+                    # check for filename
+                    pass
+            elif self.inputProteinSequence == self.IMPORT_FROM_UNIPROT:
+                # check unitprot id
+                print "IMPORT_FROM_UNIPROT"
+                if self.uniProtSequence.get() is None:
+                    print "IMPORT_FROM_UNIPROT is NONE"
+                    errors.append("Supply a UniProtID")
+                    #UniProtID = self._getUniProtID()
+            elif self.inputProteinSequence == self.IMPORT_FROM_FILES:
+                # check for file
+                pass
+        else:
+            if self.inputNucleotideSequence == \
+                    self.IMPORT_FROM_NUCLEOTIDE_PLAIN_TEXT:
+                # check for nucleotide sequence
+                pass
+            elif self.inputNucleotideSequence == \
+                    self.IMPORT_FROM_NUCLEOTIDE_STRUCTURE:
+                if self.inputStructureSequence == \
+                    self.IMPORT_STRUCTURE_FROM_ID:
+                    # check for pdbID
+                    pass
+                elif self.inputStructureSequence == \
+                    self.IMPORT_STRUCTURE_FROM_FILES:
+                    # check for file name
+                    pass
+            elif self.inputNucleotideSequence == self.IMPORT_FROM_GENEBANK:
+                # check for genbank ID
+                if self.geneBankSequence.get() is None:
+                    errors.append("Supply a geneBankID")
+
+            elif self.inputNucleotideSequence == \
+                    self.IMPORT_FROM_NUCLEOTIDE_FILES:
+                # cehck for file name
+                pass
         return errors
 
     def _getSequenceName(self):
