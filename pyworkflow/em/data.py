@@ -2151,5 +2151,5 @@ class FSC(EMObject):
 
 
 class SetOfFSCs(EMSet):
-    """Represents a set of Volumes"""
+    """Represents a set of FSCs"""
     ITEM_TYPE = FSC
