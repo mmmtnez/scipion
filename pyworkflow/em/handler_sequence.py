@@ -43,6 +43,7 @@ UNAMBIGOUS_DNA_ALPHABET = 2
 AMBIGOUS_RNA_ALPHABET = 3
 UNAMBIGOUS_RNA_ALPHABET = 4
 
+UNIPROTURL = "http://www.uniprot.org/uniprot/"
 
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC

@@ -31,7 +31,8 @@ from pyworkflow.em.protocol.protocol_import.sequence import \
     ProtImportSequence
 from pyworkflow.em.handler_sequence import \
     SEQ_TYPE_NUCLEOTIDES, PROTEIN_ALPHABET, \
-    AMBIGOUS_RNA_ALPHABET, indexToAlphabet
+    AMBIGOUS_RNA_ALPHABET, indexToAlphabet, \
+    SEQ_TYPE_AMINOACIDS
 
 
 class TestImportBase(BaseTest):
@@ -531,18 +532,20 @@ class TestImportSequence(TestImportBase):
         """
         Import a single aminoacid sequence from UniProt
         """
-        args = {'inputSequenceName': self.NAME,
+        args = {
+                'inputSequence': SEQ_TYPE_AMINOACIDS,
                 'inputProteinSequence':
                     ProtImportSequence.IMPORT_FROM_UNIPROT,
-                'uniProtSequence': self.UNIPROTID
+                'uniProtSequence': self.UNIPROTID,
+                'inputSequenceName': self.NAME
                 }
         prot19 = self.newProtocol(ProtImportSequence, **args)
         prot19.setObjLabel('19_import aminoacids,\nseq from '
                            'UniProt')
         self.launchProtocol(prot19)
         sequence = prot19.outputSequence
-        self.assertEqual("P12345", sequence.getId())
-        self.assertEqual('USER_SEQ', sequence.getSeqName())
+        self.assertEqual(self.UNIPROTID, sequence.getId())
+        self.assertEqual(self.NAME, sequence.getSeqName())
         self.assertEqual('Aspartate aminotransferase, mitochondrial',
                          sequence.getDescription())
         self.assertEqual("MALLHSARVL", sequence.getSequence()[:10])
@@ -554,11 +557,13 @@ class TestImportSequence(TestImportBase):
         """
         Import a single aminoacid sequence from UniProt
         """
-        args = {'inputSequenceID': self.USERID,
+        args = {
+            'inputSequence': SEQ_TYPE_AMINOACIDS,
+            'inputProteinSequence':
+                ProtImportSequence.IMPORT_FROM_UNIPROT,
+            'inputSequenceID': self.USERID,
                 'inputSequenceName': self.NAME,
                 'inputSequenceDescription': self.DESCRIPTION,
-                'inputProteinSequence':
-                    ProtImportSequence.IMPORT_FROM_UNIPROT,
                 'uniProtSequence': self.UNIPROTID
                     }
         prot20 = self.newProtocol(ProtImportSequence, **args)
