@@ -507,7 +507,7 @@ class TestImportSequence(TestImportBase):
         """
         Import a single aminoacid sequence from a text file
         """
-        args = {'inputSequenceID': self.USERID,
+        args = {
                 'inputSequenceName': self.NAME,
                 'inputSequenceDescription': self.DESCRIPTION,
                 'inputProteinSequence':
@@ -561,7 +561,6 @@ class TestImportSequence(TestImportBase):
             'inputSequence': SEQ_TYPE_AMINOACIDS,
             'inputProteinSequence':
                 ProtImportSequence.IMPORT_FROM_UNIPROT,
-            'inputSequenceID': self.USERID,
                 'inputSequenceName': self.NAME,
                 'inputSequenceDescription': self.DESCRIPTION,
                 'uniProtSequence': self.UNIPROTID
