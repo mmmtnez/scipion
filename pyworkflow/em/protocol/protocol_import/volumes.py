@@ -60,20 +60,17 @@ class ProtImportVolumes(ProtImportImages):
                       label="Set origin of coordinates",
                       help="Option YES: A new volume will be created with the "
                            "given ORIGIN of coordinates. This ORIGIN will be "
-                           "set in the map file header.\n"
-                           # Option YES: The binary of the object volume will 
-                           # be saved with its header modified. 
-                           # Option NO: The binary of the object volume will 
-                           # saved without any modifications. Then, the volume
-                           # is the input volume itself with other filename.
-                           # In this case the coordinates of the origin will
-                           # be saved as SCIPION object, not in the header 
-                           # volume. 
-                           # Volumes are not copied by default. They are only
-                           # copied if the user has selected the option YES in
-                           # the advanced question form "Copy files?"
+                           "set in the map file header. The ORIGIN of "
+                           "coordinates will be placed at the center of the "
+                           "whole volume if you select n_x/2, n_y/2, n_z/2 as "
+                           "x, y, z coordinates (n_x, n_y, n_x are the"
+                           "dimensions the whole volume). However, selecting "
+                           "0, 0, 0 as x, y, z coordinates, the volume will be "
+                           "placed at the upper right-hand corner. This "
+                           "ORIGIN will NOT be set in the map file header. \n"
                            "Option NO: The ORIGIN of coordinates will be " 
-                           "placed at the center of the whole volume. This "
+                           "placed at the center of the whole volume ("
+                           "coordinates n_x/2, n_y/2, n_z/2 by default). This "
                            "ORIGIN will NOT be set in the map file header. \n"
                            "WARNING: In case you want to process "
                            "the volume with programs requiring a specific "
