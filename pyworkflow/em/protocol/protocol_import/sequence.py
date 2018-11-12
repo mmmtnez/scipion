@@ -253,7 +253,6 @@ class ProtImportSequence(ProtImportFiles):
                       label="GeneBank accession ID",
                       help='Write a GeneBank accession.\n')
         form.addParam('inputSequenceName', params.StringParam, important=True,
-                      default='sequence',
                       label="Sequence name",
                       help="Scipion will use this alias to identificate the sequence.")
 #        form.addParam('inputSequenceID', params.StringParam,
@@ -509,7 +508,9 @@ class ProtImportSequence(ProtImportFiles):
     def _validate(self):
         errors = []
         name = self.inputSequenceName.get()
-        print "validate"
+        if name is None:
+            errors.append("Please provide a sequence name")
+
         if self.inputSequence == SEQ_TYPE_AMINOACIDS:
             if self.inputProteinSequence == self.IMPORT_FROM_PLAIN_TEXT:
                 print "IMPORT_FROM_PLAIN_TEXT"
