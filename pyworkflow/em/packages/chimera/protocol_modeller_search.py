@@ -219,25 +219,15 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
         SeqDic[structSeqID] = structureSeq
         SeqDic[targetSeqID] = targetSeq
 
-        # if there are additional sequences imported by the user
-        if self.inputSequencesToAlign is not None:
-            for seq in self.inputSequencesToAlign:
-                seq = seq.get()
-                ID = seq.getId()
-                sequence = seq.getSequence()
-                seqHandler = SequenceHandler(sequence,
-                                             isAminoacid=seq.getIsAminoacids())
-                otherSeq = seqHandler._sequence  # Bio.Seq.Seq object
-                SeqDic[ID] = otherSeq
-
         # align sequences and save them to disk, -this will be chimera input-
         # get all sequences in a fasta file
         inFile = self._getInFastaSequencesFile()
-        saveFileSequencesToAlign(SeqDic, inFile)
         outFile = self._getOutFastaSequencesFile()
 
         # get the alignment of sequences
         if self.additionalSequencesToAlign.get() == False:
+            saveFileSequencesToAlign(SeqDic, inFile)
+            self.inputSequencesToAlign = None
             if self.inputProgramToAlign1.get() == \
                     self.ProgramToAlign1.index('Bio.pairwise2'):
             # Only the two first sequences will be included in the alignment
@@ -252,15 +242,34 @@ class ChimeraModelFromTemplate(ChimeraProtBase):
                     cline = alignClustalSequences(inFile, outFile)
                 else:
                     cline = alignMuscleSequences(inFile, outFile)
+                args = ''
+                self.runJob(cline, args)
         else:
+            # if there are additional sequences imported by the user
+            if self.inputSequencesToAlign is not None:
+                for seq in self.inputSequencesToAlign:
+                    seq = seq.get()
+                    ID = seq.getId()
+                    sequence = seq.getSequence()
+                    seqHandler = SequenceHandler(sequence,
+                                                 isAminoacid=seq.getIsAminoacids())
+                    otherSeq = seqHandler._sequence  # Bio.Seq.Seq object
+                    SeqDic[ID] = otherSeq
+
+            # align sequences and save them to disk, -this will be chimera input-
+            # get all sequences in a fasta file
+            #inFile = self._getInFastaSequencesFile()
+            saveFileSequencesToAlign(SeqDic, inFile)
+            #outFile = self._getOutFastaSequencesFile()
+
             # All the sequences will be included in the alignment
             if self.inputProgramToAlign2.get() == self.ProgramToAlign2.index(
                     'Clustal Omega'):
                 cline = alignClustalSequences(inFile, outFile)
             else:
                 cline = alignMuscleSequences(inFile, outFile)
-        args = ''
-        self.runJob(cline, args)
+            args = ''
+            self.runJob(cline, args)
 
 
     def _getInFastaSequencesFile(self):
